@@ -142,12 +142,20 @@ _cached_repo: SQLiteUserRepository | None = None
 
 
 def get_local_provider() -> LocalAuthProvider:
-    """Get or create the cached LocalAuthProvider singleton."""
+    """Get or create the cached LocalAuthProvider singleton.
+
+    Must be called after ``init_engine_from_config()`` — the shared
+    session factory is required to construct the user repository.
+    """
     global _cached_local_provider, _cached_repo
     if _cached_repo is None:
         from app.gateway.auth.repositories.sqlite import SQLiteUserRepository
+        from deerflow.persistence.engine import get_session_factory
 
-        _cached_repo = SQLiteUserRepository()
+        sf = get_session_factory()
+        if sf is None:
+            raise RuntimeError("get_local_provider() called before init_engine_from_config(); cannot access users table")
+        _cached_repo = SQLiteUserRepository(sf)
     if _cached_local_provider is None:
         from app.gateway.auth.local_provider import LocalAuthProvider
 

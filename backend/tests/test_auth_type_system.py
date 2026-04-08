@@ -32,6 +32,32 @@ from app.gateway.csrf_middleware import (
 _TEST_SECRET = "test-secret-for-auth-type-system-tests-min32"
 
 
+@pytest.fixture(autouse=True)
+def _persistence_engine(tmp_path):
+    """Initialise a per-test SQLite engine + reset cached provider singletons.
+
+    The auth tests call real HTTP handlers that go through
+    ``SQLiteUserRepository`` → ``get_session_factory``. Each test gets
+    a fresh DB plus a clean ``deps._cached_*`` so the cached provider
+    does not hold a dangling reference to the previous test's engine.
+    """
+    import asyncio
+
+    from app.gateway import deps
+    from deerflow.persistence.engine import close_engine, init_engine
+
+    url = f"sqlite+aiosqlite:///{tmp_path}/auth_types.db"
+    asyncio.run(init_engine("sqlite", url=url, sqlite_dir=str(tmp_path)))
+    deps._cached_local_provider = None
+    deps._cached_repo = None
+    try:
+        yield
+    finally:
+        deps._cached_local_provider = None
+        deps._cached_repo = None
+        asyncio.run(close_engine())
+
+
 def _setup_config():
     set_auth_config(AuthConfig(jwt_secret=_TEST_SECRET))
 

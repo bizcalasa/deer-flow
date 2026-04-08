@@ -262,47 +262,56 @@ def test_user_model_needs_setup_true():
 
 
 def test_sqlite_round_trip_new_fields():
-    """needs_setup and token_version survive create → read round-trip."""
+    """needs_setup and token_version survive create → read round-trip.
+
+    Uses the shared persistence engine (same one threads_meta, runs,
+    run_events, and feedback use). The old separate .deer-flow/users.db
+    file is gone.
+    """
     import asyncio
-    import os
     import tempfile
-    from pathlib import Path
 
-    from app.gateway.auth.repositories import sqlite as sqlite_mod
+    from app.gateway.auth.repositories.sqlite import SQLiteUserRepository
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        db_path = os.path.join(tmpdir, "test_users.db")
-        old_path = sqlite_mod._resolved_db_path
-        old_init = sqlite_mod._table_initialized
-        sqlite_mod._resolved_db_path = Path(db_path)
-        sqlite_mod._table_initialized = False
-        try:
-            repo = sqlite_mod.SQLiteUserRepository()
-            user = User(
-                email="setup@test.com",
-                password_hash="fakehash",
-                system_role="admin",
-                needs_setup=True,
-                token_version=3,
-            )
-            created = asyncio.run(repo.create_user(user))
-            assert created.needs_setup is True
-            assert created.token_version == 3
+    async def _run() -> None:
+        from deerflow.persistence.engine import (
+            close_engine,
+            get_session_factory,
+            init_engine,
+        )
 
-            fetched = asyncio.run(repo.get_user_by_email("setup@test.com"))
-            assert fetched is not None
-            assert fetched.needs_setup is True
-            assert fetched.token_version == 3
+        with tempfile.TemporaryDirectory() as tmpdir:
+            url = f"sqlite+aiosqlite:///{tmpdir}/scratch.db"
+            await init_engine("sqlite", url=url, sqlite_dir=tmpdir)
+            try:
+                repo = SQLiteUserRepository(get_session_factory())
+                user = User(
+                    email="setup@test.com",
+                    password_hash="fakehash",
+                    system_role="admin",
+                    needs_setup=True,
+                    token_version=3,
+                )
+                created = await repo.create_user(user)
+                assert created.needs_setup is True
+                assert created.token_version == 3
 
-            fetched.needs_setup = False
-            fetched.token_version = 4
-            asyncio.run(repo.update_user(fetched))
-            refetched = asyncio.run(repo.get_user_by_id(str(fetched.id)))
-            assert refetched.needs_setup is False
-            assert refetched.token_version == 4
-        finally:
-            sqlite_mod._resolved_db_path = old_path
-            sqlite_mod._table_initialized = old_init
+                fetched = await repo.get_user_by_email("setup@test.com")
+                assert fetched is not None
+                assert fetched.needs_setup is True
+                assert fetched.token_version == 3
+
+                fetched.needs_setup = False
+                fetched.token_version = 4
+                await repo.update_user(fetched)
+                refetched = await repo.get_user_by_id(str(fetched.id))
+                assert refetched is not None
+                assert refetched.needs_setup is False
+                assert refetched.token_version == 4
+            finally:
+                await close_engine()
+
+    asyncio.run(_run())
 
 
 # ── Token Versioning ───────────────────────────────────────────────────────

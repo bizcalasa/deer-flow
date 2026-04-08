@@ -13,17 +13,19 @@ logger = logging.getLogger(__name__)
 
 
 class AuthConfig(BaseModel):
-    """JWT and auth-related configuration. Parsed once at startup."""
+    """JWT and auth-related configuration. Parsed once at startup.
+
+    Note: the ``users`` table now lives in the shared persistence
+    database managed by ``deerflow.persistence.engine``. The old
+    ``users_db_path`` config key has been removed — user storage is
+    configured through ``config.database`` like every other table.
+    """
 
     jwt_secret: str = Field(
         ...,
         description="Secret key for JWT signing. MUST be set via AUTH_JWT_SECRET.",
     )
     token_expiry_days: int = Field(default=7, ge=1, le=30)
-    users_db_path: str | None = Field(
-        default=None,
-        description="Path to users SQLite DB. Defaults to .deer-flow/users.db",
-    )
     oauth_github_client_id: str | None = Field(default=None)
     oauth_github_client_secret: str | None = Field(default=None)
 
