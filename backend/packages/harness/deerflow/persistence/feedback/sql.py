@@ -122,6 +122,46 @@ class FeedbackRepository:
             await session.commit()
             return True
 
+    async def upsert(
+        self,
+        *,
+        run_id: str,
+        thread_id: str,
+        rating: int,
+        user_id: str | None | _AutoSentinel = AUTO,
+        comment: str | None = None,
+    ) -> dict:
+        """Create or update feedback for (thread_id, run_id, user_id). rating must be +1 or -1."""
+        if rating not in (1, -1):
+            raise ValueError(f"rating must be +1 or -1, got {rating}")
+        resolved_user_id = resolve_user_id(user_id, method_name="FeedbackRepository.upsert")
+        async with self._sf() as session:
+            stmt = select(FeedbackRow).where(
+                FeedbackRow.thread_id == thread_id,
+                FeedbackRow.run_id == run_id,
+                FeedbackRow.user_id == resolved_user_id,
+            )
+            result = await session.execute(stmt)
+            row = result.scalar_one_or_none()
+            if row is not None:
+                row.rating = rating
+                row.comment = comment
+                row.created_at = datetime.now(UTC)
+            else:
+                row = FeedbackRow(
+                    feedback_id=str(uuid.uuid4()),
+                    run_id=run_id,
+                    thread_id=thread_id,
+                    user_id=resolved_user_id,
+                    rating=rating,
+                    comment=comment,
+                    created_at=datetime.now(UTC),
+                )
+                session.add(row)
+            await session.commit()
+            await session.refresh(row)
+            return self._row_to_dict(row)
+
     async def aggregate_by_run(self, thread_id: str, run_id: str) -> dict:
         """Aggregate feedback stats for a run using database-side counting."""
         stmt = select(

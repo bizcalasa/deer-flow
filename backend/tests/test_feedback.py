@@ -154,6 +154,42 @@ class TestFeedbackRepository:
         assert stats["negative"] == 0
         await _cleanup()
 
+    @pytest.mark.anyio
+    async def test_upsert_creates_new(self, tmp_path):
+        repo = await _make_feedback_repo(tmp_path)
+        record = await repo.upsert(run_id="r1", thread_id="t1", rating=1, user_id="u1")
+        assert record["rating"] == 1
+        assert record["feedback_id"]
+        assert record["user_id"] == "u1"
+        await _cleanup()
+
+    @pytest.mark.anyio
+    async def test_upsert_updates_existing(self, tmp_path):
+        repo = await _make_feedback_repo(tmp_path)
+        first = await repo.upsert(run_id="r1", thread_id="t1", rating=1, user_id="u1")
+        second = await repo.upsert(run_id="r1", thread_id="t1", rating=-1, user_id="u1", comment="changed my mind")
+        assert second["feedback_id"] == first["feedback_id"]
+        assert second["rating"] == -1
+        assert second["comment"] == "changed my mind"
+        await _cleanup()
+
+    @pytest.mark.anyio
+    async def test_upsert_different_users_separate(self, tmp_path):
+        repo = await _make_feedback_repo(tmp_path)
+        r1 = await repo.upsert(run_id="r1", thread_id="t1", rating=1, user_id="u1")
+        r2 = await repo.upsert(run_id="r1", thread_id="t1", rating=-1, user_id="u2")
+        assert r1["feedback_id"] != r2["feedback_id"]
+        assert r1["rating"] == 1
+        assert r2["rating"] == -1
+        await _cleanup()
+
+    @pytest.mark.anyio
+    async def test_upsert_invalid_rating(self, tmp_path):
+        repo = await _make_feedback_repo(tmp_path)
+        with pytest.raises(ValueError):
+            await repo.upsert(run_id="r1", thread_id="t1", rating=0, user_id="u1")
+        await _cleanup()
+
 
 # -- Follow-up association --
 
