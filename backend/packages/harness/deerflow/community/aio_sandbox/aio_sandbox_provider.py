@@ -624,23 +624,44 @@ class AioSandboxProvider(SandboxProvider):
         """
         with self._lock:
             sandbox = self._sandboxes.get(sandbox_id)
-            if sandbox is not None:
-                self._last_activity[sandbox_id] = time.time()
-                # Auto-restart: detect crashed containers and evict from cache
-                # so the next acquire() transparently recreates them.
-                if self._config.get("auto_restart", True):
-                    info = self._sandbox_infos.get(sandbox_id)
-                    if info and not self._backend.is_alive(info):
-                        logger.warning(f"Sandbox {sandbox_id} container is not alive, evicting from cache for auto-restart")
-                        self._sandboxes.pop(sandbox_id, None)
-                        self._sandbox_infos.pop(sandbox_id, None)
-                        self._last_activity.pop(sandbox_id, None)
-                        thread_ids = [tid for tid, sid in self._thread_sandboxes.items() if sid == sandbox_id]
-                        for tid in thread_ids:
-                            del self._thread_sandboxes[tid]
-                        return None
-                return sandbox
+            if sandbox is None:
+                return None
+            self._last_activity[sandbox_id] = time.time()
+            auto_restart = self._config.get("auto_restart", True)
+            info = self._sandbox_infos.get(sandbox_id) if auto_restart else None
+
+        if not info:
             return sandbox
+
+        if self._backend.is_alive(info):
+            return sandbox
+
+        info_to_destroy = None
+        with self._lock:
+            current_sandbox = self._sandboxes.get(sandbox_id)
+            current_info = self._sandbox_infos.get(sandbox_id)
+            if current_sandbox is None:
+                return None
+            if current_info is not info:
+                self._last_activity[sandbox_id] = time.time()
+                return current_sandbox
+
+            logger.warning(f"Sandbox {sandbox_id} container is not alive, evicting from cache for auto-restart")
+            self._sandboxes.pop(sandbox_id, None)
+            self._sandbox_infos.pop(sandbox_id, None)
+            self._last_activity.pop(sandbox_id, None)
+            self._warm_pool.pop(sandbox_id, None)
+            thread_ids = [tid for tid, sid in self._thread_sandboxes.items() if sid == sandbox_id]
+            for tid in thread_ids:
+                del self._thread_sandboxes[tid]
+            info_to_destroy = info
+
+        if info_to_destroy:
+            try:
+                self._backend.destroy(info_to_destroy)
+            except Exception as e:
+                logger.warning(f"Failed to cleanup dead sandbox {sandbox_id}: {e}")
+        return None
 
     def release(self, sandbox_id: str) -> None:
         """Release a sandbox from active use into the warm pool.

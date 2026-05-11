@@ -82,7 +82,7 @@ def test_get_returns_sandbox_when_auto_restart_disabled():
 def test_get_evicts_dead_sandbox_when_auto_restart_enabled():
     """When the container is dead and auto_restart is on, get() returns None and cleans caches."""
     provider, backend = _make_provider(auto_restart=True, alive=False)
-    _seed_sandbox(provider, sandbox_id="dead-beef", thread_id="thread-1")
+    _, info = _seed_sandbox(provider, sandbox_id="dead-beef", thread_id="thread-1")
 
     result = provider.get("dead-beef")
 
@@ -91,6 +91,7 @@ def test_get_evicts_dead_sandbox_when_auto_restart_enabled():
     assert "dead-beef" not in provider._sandbox_infos
     assert "dead-beef" not in provider._last_activity
     assert "thread-1" not in provider._thread_sandboxes
+    backend.destroy.assert_called_once_with(info)
 
 
 def test_get_returns_dead_sandbox_when_auto_restart_disabled():
@@ -148,6 +149,33 @@ def test_get_handles_missing_info_gracefully():
     # No info → cannot call is_alive → sandbox returned as-is
     assert result is sandbox
     backend.is_alive.assert_not_called()
+
+
+def test_get_liveness_check_runs_outside_provider_lock():
+    """get() should not hold the provider lock while checking backend liveness."""
+    provider, backend = _make_provider(auto_restart=True, alive=False)
+    _seed_sandbox(provider, sandbox_id="sid-locked", thread_id="thread-1")
+
+    def _assert_lock_not_held(_):
+        assert not provider._lock.locked()
+        return False
+
+    backend.is_alive.side_effect = _assert_lock_not_held
+
+    assert provider.get("sid-locked") is None
+
+
+def test_get_still_evicts_when_backend_destroy_fails():
+    """Cleanup errors should not keep stale sandbox state in memory."""
+    provider, backend = _make_provider(auto_restart=True, alive=False)
+    _seed_sandbox(provider, sandbox_id="sid-fail", thread_id="thread-1")
+    backend.destroy.side_effect = RuntimeError("boom")
+
+    assert provider.get("sid-fail") is None
+    assert "sid-fail" not in provider._sandboxes
+    assert "sid-fail" not in provider._sandbox_infos
+    assert "thread-1" not in provider._thread_sandboxes
+    backend.destroy.assert_called_once()
 
 
 # ── Integration: eviction clears caches for recreation ─────────────────────
