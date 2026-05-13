@@ -15,6 +15,7 @@ from store.repositories.contracts.run_event import (
     RunEventRepositoryProtocol,
 )
 from store.repositories.contracts.thread_meta import (
+    InvalidMetadataFilterError,
     ThreadMeta,
     ThreadMetaCreate,
     ThreadMetaRepositoryProtocol,
@@ -37,6 +38,7 @@ __all__ = [
     "RunEventCreate",
     "RunEventRepositoryProtocol",
     "RunRepositoryProtocol",
+    "InvalidMetadataFilterError",
     "ThreadMeta",
     "ThreadMetaCreate",
     "ThreadMetaRepositoryProtocol",

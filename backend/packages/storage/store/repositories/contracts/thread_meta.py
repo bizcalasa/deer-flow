@@ -6,6 +6,10 @@ from typing import Any, Protocol
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class InvalidMetadataFilterError(ValueError):
+    """Raised when all client-supplied metadata filters are rejected."""
+
+
 class ThreadMetaCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

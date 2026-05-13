@@ -10,6 +10,10 @@ from store.persistence.shared import close_in_order
 from store.persistence.types import AppPersistence
 
 
+def _checkpoint_conn_string(db_url: URL) -> str:
+    return db_url.set(drivername="postgresql").render_as_string(hide_password=False)
+
+
 async def build_postgres_persistence(db_url: URL, *, echo: bool = False, pool_size: int = 5) -> AppPersistence:
     from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
@@ -31,7 +35,7 @@ async def build_postgres_persistence(db_url: URL, *, echo: bool = False, pool_si
         autoflush=False,
     )
 
-    saver_cm = AsyncPostgresSaver.from_conn_string(db_url)
+    saver_cm = AsyncPostgresSaver.from_conn_string(_checkpoint_conn_string(db_url))
     checkpointer = await saver_cm.__aenter__()
 
     async def setup() -> None:

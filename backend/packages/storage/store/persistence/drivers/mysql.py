@@ -11,7 +11,7 @@ from store.persistence.shared import close_in_order
 from store.persistence.types import AppPersistence
 
 
-def _validate_mysql_driver(db_url: str) -> str:
+def _validate_mysql_driver(db_url: URL) -> str:
     url = make_url(db_url)
     driver = url.get_driver_name()
 
@@ -21,6 +21,10 @@ def _validate_mysql_driver(db_url: str) -> str:
             f"(aiomysql/asyncmy), got: {driver!r}"
         )
     return driver
+
+
+def _checkpoint_conn_string(db_url: URL) -> str:
+    return db_url.render_as_string(hide_password=False)
 
 
 async def build_mysql_persistence(db_url: URL, *, echo: bool = False, pool_size: int = 5) -> AppPersistence:
@@ -46,7 +50,7 @@ async def build_mysql_persistence(db_url: URL, *, echo: bool = False, pool_size:
         autoflush=False,
     )
 
-    saver_cm = AIOMySQLSaver.from_conn_string(db_url)
+    saver_cm = AIOMySQLSaver.from_conn_string(_checkpoint_conn_string(db_url))
     checkpointer = await saver_cm.__aenter__()
 
     async def setup() -> None:

@@ -1,12 +1,21 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from store.repositories.contracts.thread_meta import ThreadMeta, ThreadMetaCreate, ThreadMetaRepositoryProtocol
+from store.persistence.json_compat import json_match
+from store.repositories.contracts.thread_meta import (
+    InvalidMetadataFilterError,
+    ThreadMeta,
+    ThreadMetaCreate,
+    ThreadMetaRepositoryProtocol,
+)
 from store.repositories.models.thread_meta import ThreadMeta as ThreadMetaModel
+
+logger = logging.getLogger(__name__)
 
 
 def _to_thread_meta(m: ThreadMetaModel) -> ThreadMeta:
@@ -87,10 +96,18 @@ class DbThreadMetaRepository(ThreadMetaRepositoryProtocol):
         if assistant_id is not None:
             stmt = stmt.where(ThreadMetaModel.assistant_id == assistant_id)
         if metadata:
+            applied = 0
             for key, value in metadata.items():
-                stmt = stmt.where(ThreadMetaModel.meta[key].as_string() == str(value))
+                try:
+                    stmt = stmt.where(json_match(ThreadMetaModel.meta, key, value))
+                    applied += 1
+                except (ValueError, TypeError) as exc:
+                    logger.warning("Skipping metadata filter key %s: %s", ascii(key), exc)
+            if applied == 0:
+                rejected_keys = ", ".join(sorted(str(key) for key in metadata))
+                raise InvalidMetadataFilterError(f"All metadata filter keys were rejected as unsafe: {rejected_keys}")
 
-        stmt = stmt.order_by(ThreadMetaModel.created_time.desc())
+        stmt = stmt.order_by(ThreadMetaModel.created_time.desc(), ThreadMetaModel.thread_id.desc())
         stmt = stmt.limit(limit).offset(offset)
 
         result = await self._session.execute(stmt)

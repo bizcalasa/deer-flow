@@ -56,8 +56,10 @@ class DbRunEventRepository(RunEventRepositoryProtocol):
         seq_by_thread: dict[str, int] = {}
         for thread_id in thread_ids:
             max_seq = await self._session.scalar(
-                select(func.max(RunEventModel.seq))
+                select(RunEventModel.seq)
                 .where(RunEventModel.thread_id == thread_id)
+                .order_by(RunEventModel.seq.desc())
+                .limit(1)
                 .with_for_update()
             )
             seq_by_thread[thread_id] = max_seq or 0

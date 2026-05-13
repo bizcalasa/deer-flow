@@ -12,6 +12,7 @@ os.environ.setdefault("DEER_FLOW_CONFIG_PATH", str(Path(__file__).resolve().pare
 from store.persistence import create_persistence_from_database_config
 from store.repositories import (
     FeedbackCreate,
+    InvalidMetadataFilterError,
     RunCreate,
     RunEventCreate,
     ThreadMetaCreate,
@@ -171,6 +172,77 @@ async def test_storage_thread_meta_repository_search_update_delete(tmp_path):
         async with persistence.session_factory() as session:
             repo = build_thread_meta_repository(session)
             assert await repo.get_thread_meta("thread-1") is None
+    finally:
+        await persistence.aclose()
+
+
+@pytest.mark.anyio
+async def test_storage_thread_meta_metadata_filters_are_type_safe(tmp_path):
+    persistence = await _make_persistence(tmp_path)
+    try:
+        async with persistence.session_factory() as session:
+            repo = build_thread_meta_repository(session)
+            await repo.create_thread_meta(ThreadMetaCreate(thread_id="bool-true", metadata={"value": True}))
+            await repo.create_thread_meta(ThreadMetaCreate(thread_id="bool-false", metadata={"value": False}))
+            await repo.create_thread_meta(ThreadMetaCreate(thread_id="int-one", metadata={"value": 1}))
+            await repo.create_thread_meta(ThreadMetaCreate(thread_id="null-value", metadata={"value": None}))
+            await repo.create_thread_meta(ThreadMetaCreate(thread_id="missing-value", metadata={"other": "x"}))
+            await session.commit()
+
+        async with persistence.session_factory() as session:
+            repo = build_thread_meta_repository(session)
+            assert [row.thread_id for row in await repo.search_threads(metadata={"value": True})] == ["bool-true"]
+            assert [row.thread_id for row in await repo.search_threads(metadata={"value": False})] == ["bool-false"]
+            assert [row.thread_id for row in await repo.search_threads(metadata={"value": 1})] == ["int-one"]
+            assert [row.thread_id for row in await repo.search_threads(metadata={"value": None})] == ["null-value"]
+    finally:
+        await persistence.aclose()
+
+
+@pytest.mark.anyio
+async def test_storage_thread_meta_metadata_filters_paginate_after_sql_match(tmp_path):
+    persistence = await _make_persistence(tmp_path)
+    try:
+        async with persistence.session_factory() as session:
+            repo = build_thread_meta_repository(session)
+            for index in range(30):
+                metadata = {"target": "yes"} if index % 3 == 0 else {"target": "no"}
+                await repo.create_thread_meta(ThreadMetaCreate(thread_id=f"thread-{index:02d}", metadata=metadata))
+            await session.commit()
+
+        async with persistence.session_factory() as session:
+            repo = build_thread_meta_repository(session)
+            first_page = await repo.search_threads(metadata={"target": "yes"}, limit=3, offset=0)
+            second_page = await repo.search_threads(metadata={"target": "yes"}, limit=3, offset=3)
+            last_page = await repo.search_threads(metadata={"target": "yes"}, limit=3, offset=9)
+
+        assert len(first_page) == 3
+        assert len(second_page) == 3
+        assert len(last_page) == 1
+        assert {row.thread_id for row in first_page}.isdisjoint({row.thread_id for row in second_page})
+    finally:
+        await persistence.aclose()
+
+
+@pytest.mark.anyio
+async def test_storage_thread_meta_metadata_filter_rejects_invalid_entries(tmp_path):
+    persistence = await _make_persistence(tmp_path)
+    try:
+        async with persistence.session_factory() as session:
+            repo = build_thread_meta_repository(session)
+            await repo.create_thread_meta(ThreadMetaCreate(thread_id="thread-1", metadata={"env": "prod"}))
+            await repo.create_thread_meta(ThreadMetaCreate(thread_id="thread-2", metadata={"env": "staging"}))
+            await session.commit()
+
+        async with persistence.session_factory() as session:
+            repo = build_thread_meta_repository(session)
+            partial = await repo.search_threads(metadata={"env": "prod", "bad;key": "ignored"})
+            assert [row.thread_id for row in partial] == ["thread-1"]
+
+            with pytest.raises(InvalidMetadataFilterError, match="rejected"):
+                await repo.search_threads(metadata={"bad;key": "x"})
+            with pytest.raises(InvalidMetadataFilterError, match="rejected"):
+                await repo.search_threads(metadata={"env": ["prod", "staging"]})
     finally:
         await persistence.aclose()
 

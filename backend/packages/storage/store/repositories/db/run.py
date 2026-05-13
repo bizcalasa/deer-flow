@@ -153,9 +153,10 @@ class DbRunRepository(RunRepositoryProtocol):
 
     async def aggregate_tokens_by_thread(self, thread_id: str) -> dict[str, Any]:
         completed = RunModel.status.in_(("success", "error"))
+        model_expr = func.coalesce(RunModel.model_name, "unknown")
         stmt = (
             select(
-                func.coalesce(RunModel.model_name, "unknown").label("model"),
+                model_expr.label("model"),
                 func.count().label("runs"),
                 func.coalesce(func.sum(RunModel.total_tokens), 0).label("total_tokens"),
                 func.coalesce(func.sum(RunModel.total_input_tokens), 0).label("total_input_tokens"),
@@ -165,7 +166,7 @@ class DbRunRepository(RunRepositoryProtocol):
                 func.coalesce(func.sum(RunModel.middleware_tokens), 0).label("middleware"),
             )
             .where(RunModel.thread_id == thread_id, completed)
-            .group_by(func.coalesce(RunModel.model_name, "unknown"))
+            .group_by(model_expr)
         )
 
         rows = (await self._session.execute(stmt)).all()
