@@ -1,5 +1,6 @@
 """Authentication endpoints."""
 
+import asyncio
 import logging
 import os
 import time
@@ -389,6 +390,8 @@ async def get_me(request: Request):
 _SETUP_STATUS_CACHE: dict[str, tuple[float, dict]] = {}
 _SETUP_STATUS_CACHE_TTL_SECONDS = 60
 _MAX_TRACKED_SETUP_STATUS_IPS = 10000
+_SETUP_STATUS_INFLIGHT: dict[str, asyncio.Task[dict]] = {}
+_SETUP_STATUS_INFLIGHT_GUARD = asyncio.Lock()
 
 
 @router.get("/setup-status")
@@ -404,20 +407,48 @@ async def setup_status(request: Request):
         if now - cached_time < _SETUP_STATUS_CACHE_TTL_SECONDS:
             return cached_result
 
-    # Evict stale entries when dict grows too large to bound memory usage.
-    if len(_SETUP_STATUS_CACHE) >= _MAX_TRACKED_SETUP_STATUS_IPS:
-        cutoff = now - _SETUP_STATUS_CACHE_TTL_SECONDS
-        stale = [k for k, (t, _) in _SETUP_STATUS_CACHE.items() if t < cutoff]
-        for k in stale:
-            del _SETUP_STATUS_CACHE[k]
-        if len(_SETUP_STATUS_CACHE) >= _MAX_TRACKED_SETUP_STATUS_IPS:
-            by_time = sorted(_SETUP_STATUS_CACHE.items(), key=lambda kv: kv[0])
-            for k, _ in by_time[: len(by_time) // 2]:
-                del _SETUP_STATUS_CACHE[k]
+    task: asyncio.Task[dict] | None = None
+    async with _SETUP_STATUS_INFLIGHT_GUARD:
+        # Recheck cache after waiting for the inflight guard.
+        now = time.time()
+        cached = _SETUP_STATUS_CACHE.get(client_ip)
+        if cached is not None:
+            cached_time, cached_result = cached
+            if now - cached_time < _SETUP_STATUS_CACHE_TTL_SECONDS:
+                return cached_result
 
-    admin_count = await get_local_provider().count_admin_users()
-    result = {"needs_setup": admin_count == 0}
-    _SETUP_STATUS_CACHE[client_ip] = (now, result)
+        task = _SETUP_STATUS_INFLIGHT.get(client_ip)
+        if task is None:
+            # Evict stale entries when dict grows too large to bound memory usage.
+            if len(_SETUP_STATUS_CACHE) >= _MAX_TRACKED_SETUP_STATUS_IPS:
+                cutoff = now - _SETUP_STATUS_CACHE_TTL_SECONDS
+                stale = [k for k, (t, _) in _SETUP_STATUS_CACHE.items() if t < cutoff]
+                for k in stale:
+                    del _SETUP_STATUS_CACHE[k]
+                if len(_SETUP_STATUS_CACHE) >= _MAX_TRACKED_SETUP_STATUS_IPS:
+                    by_time = sorted(_SETUP_STATUS_CACHE.items(), key=lambda kv: kv[1][0])
+                    for k, _ in by_time[: len(by_time) // 2]:
+                        del _SETUP_STATUS_CACHE[k]
+
+            async def _compute_setup_status() -> dict:
+                admin_count = await get_local_provider().count_admin_users()
+                return {"needs_setup": admin_count == 0}
+
+            task = asyncio.create_task(_compute_setup_status())
+            _SETUP_STATUS_INFLIGHT[client_ip] = task
+
+    try:
+        result = await task
+    finally:
+        async with _SETUP_STATUS_INFLIGHT_GUARD:
+            if _SETUP_STATUS_INFLIGHT.get(client_ip) is task:
+                del _SETUP_STATUS_INFLIGHT[client_ip]
+
+    # Cache only the stable "initialized" result to avoid stale setup redirects.
+    if result["needs_setup"] is False:
+        _SETUP_STATUS_CACHE[client_ip] = (time.time(), result)
+    else:
+        _SETUP_STATUS_CACHE.pop(client_ip, None)
     return result
 
 
