@@ -5,28 +5,26 @@ from unittest.mock import patch
 
 import pytest
 
-from app.gateway.auth.config import AuthConfig
+import app.gateway.auth.config as cfg
 
 
 def test_auth_config_defaults():
-    config = AuthConfig(jwt_secret="test-secret-key-123")
+    config = cfg.AuthConfig(jwt_secret="test-secret-key-123")
     assert config.token_expiry_days == 7
 
 
 def test_auth_config_token_expiry_range():
-    AuthConfig(jwt_secret="s", token_expiry_days=1)
-    AuthConfig(jwt_secret="s", token_expiry_days=30)
+    cfg.AuthConfig(jwt_secret="s", token_expiry_days=1)
+    cfg.AuthConfig(jwt_secret="s", token_expiry_days=30)
     with pytest.raises(Exception):
-        AuthConfig(jwt_secret="s", token_expiry_days=0)
+        cfg.AuthConfig(jwt_secret="s", token_expiry_days=0)
     with pytest.raises(Exception):
-        AuthConfig(jwt_secret="s", token_expiry_days=31)
+        cfg.AuthConfig(jwt_secret="s", token_expiry_days=31)
 
 
 def test_auth_config_from_env():
     env = {"AUTH_JWT_SECRET": "test-jwt-secret-from-env"}
     with patch.dict(os.environ, env, clear=False):
-        import app.gateway.auth.config as cfg
-
         old = cfg._auth_config
         cfg._auth_config = None
         try:
@@ -39,7 +37,6 @@ def test_auth_config_from_env():
 def test_auth_config_missing_secret_generates_and_persists(tmp_path, caplog):
     import logging
 
-    import app.gateway.auth.config as cfg
     from deerflow.config.paths import Paths
 
     old = cfg._auth_config
@@ -59,7 +56,6 @@ def test_auth_config_missing_secret_generates_and_persists(tmp_path, caplog):
 
 
 def test_auth_config_reuses_persisted_secret(tmp_path):
-    import app.gateway.auth.config as cfg
     from deerflow.config.paths import Paths
 
     old = cfg._auth_config
@@ -77,7 +73,6 @@ def test_auth_config_reuses_persisted_secret(tmp_path):
 
 
 def test_auth_config_empty_secret_file_generates_new(tmp_path):
-    import app.gateway.auth.config as cfg
     from deerflow.config.paths import Paths
 
     old = cfg._auth_config
