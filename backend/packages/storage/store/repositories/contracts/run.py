@@ -52,8 +52,12 @@ class Run(BaseModel):
 
 
 class RunRepositoryProtocol(Protocol):
-    async def create_run(self, data: RunCreate) -> Run: ...
-    async def get_run(self, run_id: str) -> Run | None: ...
+    async def create_run(self, data: RunCreate) -> Run:
+        pass
+
+    async def get_run(self, run_id: str) -> Run | None:
+        pass
+
     async def list_runs_by_thread(
         self,
         thread_id: str,
@@ -61,10 +65,18 @@ class RunRepositoryProtocol(Protocol):
         user_id: str | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> list[Run]: ...
-    async def update_run_status(self, run_id: str, status: str, *, error: str | None = None) -> None: ...
-    async def delete_run(self, run_id: str) -> None: ...
-    async def list_pending(self, *, before: datetime | str | None = None) -> list[Run]: ...
+    ) -> list[Run]:
+        pass
+
+    async def update_run_status(self, run_id: str, status: str, *, error: str | None = None) -> None:
+        pass
+
+    async def delete_run(self, run_id: str) -> None:
+        pass
+
+    async def list_pending(self, *, before: datetime | str | None = None) -> list[Run]:
+        pass
+
     async def update_run_completion(
         self,
         run_id: str,
@@ -81,5 +93,8 @@ class RunRepositoryProtocol(Protocol):
         first_human_message: str | None = None,
         last_ai_message: str | None = None,
         error: str | None = None,
-    ) -> None: ...
-    async def aggregate_tokens_by_thread(self, thread_id: str) -> dict[str, Any]: ...
+    ) -> None:
+        pass
+
+    async def aggregate_tokens_by_thread(self, thread_id: str) -> dict[str, Any]:
+        pass

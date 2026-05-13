@@ -36,7 +36,8 @@ class RunEvent(BaseModel):
 class RunEventRepositoryProtocol(Protocol):
     # Sequence values are time-ordered integer cursors. The application layer
     # owns the single-writer invariant for a thread while a run is active.
-    async def append_batch(self, events: list[RunEventCreate]) -> list[RunEvent]: ...
+    async def append_batch(self, events: list[RunEventCreate]) -> list[RunEvent]:
+        pass
 
     async def list_messages(
         self,
@@ -46,7 +47,8 @@ class RunEventRepositoryProtocol(Protocol):
         before_seq: int | None = None,
         after_seq: int | None = None,
         user_id: str | None = None,
-    ) -> list[RunEvent]: ...
+    ) -> list[RunEvent]:
+        pass
 
     async def list_events(
         self,
@@ -56,7 +58,8 @@ class RunEventRepositoryProtocol(Protocol):
         event_types: list[str] | None = None,
         limit: int = 500,
         user_id: str | None = None,
-    ) -> list[RunEvent]: ...
+    ) -> list[RunEvent]:
+        pass
 
     async def list_messages_by_run(
         self,
@@ -67,10 +70,14 @@ class RunEventRepositoryProtocol(Protocol):
         before_seq: int | None = None,
         after_seq: int | None = None,
         user_id: str | None = None,
-    ) -> list[RunEvent]: ...
+    ) -> list[RunEvent]:
+        pass
 
-    async def count_messages(self, thread_id: str, *, user_id: str | None = None) -> int: ...
+    async def count_messages(self, thread_id: str, *, user_id: str | None = None) -> int:
+        pass
 
-    async def delete_by_thread(self, thread_id: str, *, user_id: str | None = None) -> int: ...
+    async def delete_by_thread(self, thread_id: str, *, user_id: str | None = None) -> int:
+        pass
 
-    async def delete_by_run(self, thread_id: str, run_id: str, *, user_id: str | None = None) -> int: ...
+    async def delete_by_run(self, thread_id: str, run_id: str, *, user_id: str | None = None) -> int:
+        pass

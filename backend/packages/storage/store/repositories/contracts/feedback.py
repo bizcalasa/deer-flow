@@ -39,9 +39,15 @@ class FeedbackAggregate(TypedDict):
 
 
 class FeedbackRepositoryProtocol(Protocol):
-    async def create_feedback(self, data: FeedbackCreate) -> Feedback: ...
-    async def upsert_feedback(self, data: FeedbackCreate) -> Feedback: ...
-    async def get_feedback(self, feedback_id: str) -> Feedback | None: ...
+    async def create_feedback(self, data: FeedbackCreate) -> Feedback:
+        pass
+
+    async def upsert_feedback(self, data: FeedbackCreate) -> Feedback:
+        pass
+
+    async def get_feedback(self, feedback_id: str) -> Feedback | None:
+        pass
+
     async def list_feedback_by_run(
         self,
         run_id: str,
@@ -49,14 +55,23 @@ class FeedbackRepositoryProtocol(Protocol):
         thread_id: str | None = None,
         user_id: str | None = None,
         limit: int | None = None,
-    ) -> list[Feedback]: ...
+    ) -> list[Feedback]:
+        pass
+
     async def list_feedback_by_thread(
         self,
         thread_id: str,
         *,
         user_id: str | None = None,
         limit: int | None = None,
-    ) -> list[Feedback]: ...
-    async def delete_feedback(self, feedback_id: str) -> bool: ...
-    async def delete_feedback_by_run(self, thread_id: str, run_id: str, *, user_id: str | None = None) -> bool: ...
-    async def aggregate_feedback_by_run(self, thread_id: str, run_id: str) -> FeedbackAggregate: ...
+    ) -> list[Feedback]:
+        pass
+
+    async def delete_feedback(self, feedback_id: str) -> bool:
+        pass
+
+    async def delete_feedback_by_run(self, thread_id: str, run_id: str, *, user_id: str | None = None) -> bool:
+        pass
+
+    async def aggregate_feedback_by_run(self, thread_id: str, run_id: str) -> FeedbackAggregate:
+        pass

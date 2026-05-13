@@ -35,9 +35,11 @@ class ThreadMeta(BaseModel):
 
 
 class ThreadMetaRepositoryProtocol(Protocol):
-    async def create_thread_meta(self, data: ThreadMetaCreate) -> ThreadMeta: ...
+    async def create_thread_meta(self, data: ThreadMetaCreate) -> ThreadMeta:
+        pass
 
-    async def get_thread_meta(self, thread_id: str) -> ThreadMeta | None: ...
+    async def get_thread_meta(self, thread_id: str) -> ThreadMeta | None:
+        pass
 
     async def update_thread_meta(
         self,
@@ -46,9 +48,11 @@ class ThreadMetaRepositoryProtocol(Protocol):
         display_name: str | None = None,
         status: str | None = None,
         metadata: dict[str, Any] | None = None,
-    ) -> None: ...
+    ) -> None:
+        pass
 
-    async def delete_thread(self, thread_id: str) -> None: ...
+    async def delete_thread(self, thread_id: str) -> None:
+        pass
 
     async def search_threads(
         self,
@@ -59,4 +63,5 @@ class ThreadMetaRepositoryProtocol(Protocol):
         assistant_id: str | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> list[ThreadMeta]: ...
+    ) -> list[ThreadMeta]:
+        pass

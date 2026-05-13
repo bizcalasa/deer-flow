@@ -39,18 +39,26 @@ class User(BaseModel):
 
 
 class UserRepositoryProtocol(Protocol):
-    async def create_user(self, data: UserCreate) -> User: ...
+    async def create_user(self, data: UserCreate) -> User:
+        pass
 
-    async def get_user_by_id(self, user_id: str) -> User | None: ...
+    async def get_user_by_id(self, user_id: str) -> User | None:
+        pass
 
-    async def get_user_by_email(self, email: str) -> User | None: ...
+    async def get_user_by_email(self, email: str) -> User | None:
+        pass
 
-    async def get_user_by_oauth(self, provider: str, oauth_id: str) -> User | None: ...
+    async def get_user_by_oauth(self, provider: str, oauth_id: str) -> User | None:
+        pass
 
-    async def get_first_admin(self) -> User | None: ...
+    async def get_first_admin(self) -> User | None:
+        pass
 
-    async def update_user(self, data: User) -> User: ...
+    async def update_user(self, data: User) -> User:
+        pass
 
-    async def count_users(self) -> int: ...
+    async def count_users(self) -> int:
+        pass
 
-    async def count_admin_users(self) -> int: ...
+    async def count_admin_users(self) -> int:
+        pass
