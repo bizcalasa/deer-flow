@@ -67,9 +67,7 @@ class DbFeedbackRepository(FeedbackRepositoryProtocol):
         return _to_feedback(model)
 
     async def get_feedback(self, feedback_id: str) -> Feedback | None:
-        result = await self._session.execute(
-            select(FeedbackModel).where(FeedbackModel.feedback_id == feedback_id)
-        )
+        result = await self._session.execute(select(FeedbackModel).where(FeedbackModel.feedback_id == feedback_id))
         model = result.scalar_one_or_none()
         return _to_feedback(model) if model else None
 
@@ -112,9 +110,7 @@ class DbFeedbackRepository(FeedbackRepositoryProtocol):
         existing = await self.get_feedback(feedback_id)
         if existing is None:
             return False
-        await self._session.execute(
-            delete(FeedbackModel).where(FeedbackModel.feedback_id == feedback_id)
-        )
+        await self._session.execute(delete(FeedbackModel).where(FeedbackModel.feedback_id == feedback_id))
         return True
 
     async def delete_feedback_by_run(self, thread_id: str, run_id: str, *, user_id: str | None = None) -> bool:

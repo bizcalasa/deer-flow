@@ -16,10 +16,7 @@ def _validate_mysql_driver(db_url: URL) -> str:
     driver = url.get_driver_name()
 
     if driver not in {"aiomysql", "asyncmy"}:
-        raise ValueError(
-            "MySQL persistence requires async SQLAlchemy driver "
-            f"(aiomysql/asyncmy), got: {driver!r}"
-        )
+        raise ValueError(f"MySQL persistence requires async SQLAlchemy driver (aiomysql/asyncmy), got: {driver!r}")
     return driver
 
 

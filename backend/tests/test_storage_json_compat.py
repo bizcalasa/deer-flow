@@ -24,12 +24,8 @@ def test_storage_json_match_compiles_sqlite() -> None:
     table = _table()
     dialect = create_engine("sqlite://").dialect
 
-    assert str(json_match(table.c.data, "k", None).compile(dialect=dialect, compile_kwargs={"literal_binds": True})) == (
-        "json_type(t.data, '$.\"k\"') = 'null'"
-    )
-    assert str(json_match(table.c.data, "k", True).compile(dialect=dialect, compile_kwargs={"literal_binds": True})) == (
-        "json_type(t.data, '$.\"k\"') = 'true'"
-    )
+    assert str(json_match(table.c.data, "k", None).compile(dialect=dialect, compile_kwargs={"literal_binds": True})) == ("json_type(t.data, '$.\"k\"') = 'null'")
+    assert str(json_match(table.c.data, "k", True).compile(dialect=dialect, compile_kwargs={"literal_binds": True})) == ("json_type(t.data, '$.\"k\"') = 'true'")
 
     int_sql = str(json_match(table.c.data, "k", 42).compile(dialect=dialect, compile_kwargs={"literal_binds": True}))
     assert "= 'integer'" in int_sql
@@ -44,12 +40,8 @@ def test_storage_json_match_compiles_postgres() -> None:
     table = _table()
     dialect = postgresql.dialect()
 
-    assert str(json_match(table.c.data, "k", None).compile(dialect=dialect, compile_kwargs={"literal_binds": True})) == (
-        "json_typeof(t.data -> 'k') = 'null'"
-    )
-    assert str(json_match(table.c.data, "k", False).compile(dialect=dialect, compile_kwargs={"literal_binds": True})) == (
-        "(json_typeof(t.data -> 'k') = 'boolean' AND (t.data ->> 'k') = 'false')"
-    )
+    assert str(json_match(table.c.data, "k", None).compile(dialect=dialect, compile_kwargs={"literal_binds": True})) == ("json_typeof(t.data -> 'k') = 'null'")
+    assert str(json_match(table.c.data, "k", False).compile(dialect=dialect, compile_kwargs={"literal_binds": True})) == ("(json_typeof(t.data -> 'k') = 'boolean' AND (t.data ->> 'k') = 'false')")
 
     int_sql = str(json_match(table.c.data, "k", 42).compile(dialect=dialect, compile_kwargs={"literal_binds": True}))
     assert "CASE WHEN" in int_sql

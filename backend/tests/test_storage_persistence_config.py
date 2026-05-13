@@ -110,9 +110,7 @@ def test_storage_models_import_without_config_file(tmp_path):
         [
             sys.executable,
             "-c",
-            "from store.persistence.base_model import UniversalText, id_key; "
-            "from store.repositories.models import RunEvent; "
-            "print(UniversalText.__name__, RunEvent.__tablename__, id_key)",
+            "from store.persistence.base_model import UniversalText, id_key; from store.repositories.models import RunEvent; print(UniversalText.__name__, RunEvent.__tablename__, id_key)",
         ],
         check=False,
         capture_output=True,

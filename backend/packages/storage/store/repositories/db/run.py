@@ -64,9 +64,7 @@ class DbRunRepository(RunRepositoryProtocol):
         return _to_run(model)
 
     async def get_run(self, run_id: str) -> Run | None:
-        result = await self._session.execute(
-            select(RunModel).where(RunModel.run_id == run_id)
-        )
+        result = await self._session.execute(select(RunModel).where(RunModel.run_id == run_id))
         model = result.scalar_one_or_none()
         return _to_run(model) if model else None
 
@@ -85,15 +83,11 @@ class DbRunRepository(RunRepositoryProtocol):
         result = await self._session.execute(stmt)
         return [_to_run(m) for m in result.scalars().all()]
 
-    async def update_run_status(
-        self, run_id: str, status: str, *, error: str | None = None
-    ) -> None:
+    async def update_run_status(self, run_id: str, status: str, *, error: str | None = None) -> None:
         values: dict = {"status": status}
         if error is not None:
             values["error"] = error
-        await self._session.execute(
-            update(RunModel).where(RunModel.run_id == run_id).values(**values)
-        )
+        await self._session.execute(update(RunModel).where(RunModel.run_id == run_id).values(**values))
 
     async def delete_run(self, run_id: str) -> None:
         await self._session.execute(delete(RunModel).where(RunModel.run_id == run_id))
@@ -106,11 +100,7 @@ class DbRunRepository(RunRepositoryProtocol):
         else:
             before_dt = datetime.fromisoformat(before)
 
-        result = await self._session.execute(
-            select(RunModel)
-            .where(RunModel.status == "pending", RunModel.created_time <= before_dt)
-            .order_by(RunModel.created_time.asc())
-        )
+        result = await self._session.execute(select(RunModel).where(RunModel.status == "pending", RunModel.created_time <= before_dt).order_by(RunModel.created_time.asc()))
         return [_to_run(m) for m in result.scalars().all()]
 
     async def update_run_completion(
@@ -147,9 +137,7 @@ class DbRunRepository(RunRepositoryProtocol):
             values["last_ai_message"] = last_ai_message[:2000]
         if error is not None:
             values["error"] = error
-        await self._session.execute(
-            update(RunModel).where(RunModel.run_id == run_id).values(**values)
-        )
+        await self._session.execute(update(RunModel).where(RunModel.run_id == run_id).values(**values))
 
     async def aggregate_tokens_by_thread(self, thread_id: str) -> dict[str, Any]:
         completed = RunModel.status.in_(("success", "error"))

@@ -3,7 +3,7 @@ from enum import IntEnum as SourceIntEnum
 from enum import StrEnum as SourceStrEnum
 from typing import Any, TypeVar
 
-T = TypeVar('T', bound=Enum)
+T = TypeVar("T", bound=Enum)
 
 
 class _EnumBase:
@@ -36,6 +36,6 @@ class StrEnum(_EnumBase, SourceStrEnum):
 class DataBaseType(StrEnum):
     """Database type."""
 
-    sqlite = 'sqlite'
-    mysql = 'mysql'
-    postgresql = 'postgresql'
+    sqlite = "sqlite"
+    mysql = "mysql"
+    postgresql = "postgresql"

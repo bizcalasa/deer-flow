@@ -55,12 +55,12 @@ class DbThreadMetaRepository(ThreadMetaRepositoryProtocol):
         return _to_thread_meta(model) if model else None
 
     async def update_thread_meta(
-            self,
-            thread_id: str,
-            *,
-            display_name: str | None = None,
-            status: str | None = None,
-            metadata: dict[str, Any] | None = None,
+        self,
+        thread_id: str,
+        *,
+        display_name: str | None = None,
+        status: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         values: dict = {}
         if display_name is not None:
@@ -71,21 +71,20 @@ class DbThreadMetaRepository(ThreadMetaRepositoryProtocol):
             values["meta"] = dict(metadata)
         if not values:
             return
-        await self._session.execute(
-            update(ThreadMetaModel).where(ThreadMetaModel.thread_id == thread_id).values(**values))
+        await self._session.execute(update(ThreadMetaModel).where(ThreadMetaModel.thread_id == thread_id).values(**values))
 
     async def delete_thread(self, thread_id: str) -> None:
         await self._session.execute(delete(ThreadMetaModel).where(ThreadMetaModel.thread_id == thread_id))
 
     async def search_threads(
-            self,
-            *,
-            metadata: dict[str, Any] | None = None,
-            status: str | None = None,
-            user_id: str | None = None,
-            assistant_id: str | None = None,
-            limit: int = 100,
-            offset: int = 0,
+        self,
+        *,
+        metadata: dict[str, Any] | None = None,
+        status: str | None = None,
+        user_id: str | None = None,
+        assistant_id: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
     ) -> list[ThreadMeta]:
         stmt = select(ThreadMetaModel)
 

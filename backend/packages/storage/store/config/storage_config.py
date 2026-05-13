@@ -22,17 +22,14 @@ def _strip_legacy_state_prefix(path: str) -> str:
     if path == ".deer-flow":
         return "."
     if path.startswith(prefix):
-        return path[len(prefix):]
+        return path[len(prefix) :]
     return path
 
 
 class StorageConfig(BaseModel):
     driver: Literal["mysql", "sqlite", "postgres", "postgresql"] = Field(
         default="sqlite",
-        description="Storage driver for both checkpointer and application data. "
-                    "'sqlite' for single-node deployment (default),"
-                    "'postgres' for production multi-node deployment, "
-                    "'mysql' for MySQL databases.",
+        description="Storage driver for both checkpointer and application data. 'sqlite' for single-node deployment (default),'postgres' for production multi-node deployment, 'mysql' for MySQL databases.",
     )
     sqlite_dir: str = Field(
         default=".deer-flow/data",

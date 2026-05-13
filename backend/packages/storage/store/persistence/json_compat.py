@@ -139,10 +139,7 @@ def _build_clause(compiler: SQLCompiler, typeof: str, extract: str, value: objec
     if isinstance(value, int):
         bp = _bind(compiler, value, BigInteger(), **kw)
         if dialect.int_guard:
-            return (
-                f"(CASE WHEN {_type_check(typeof, dialect.int_types)} AND {extract} ~ {dialect.int_guard} "
-                f"THEN CAST({extract} AS {dialect.int_cast}) END = {bp})"
-            )
+            return f"(CASE WHEN {_type_check(typeof, dialect.int_types)} AND {extract} ~ {dialect.int_guard} THEN CAST({extract} AS {dialect.int_cast}) END = {bp})"
         return f"({_type_check(typeof, dialect.int_types)} AND CAST({extract} AS {dialect.int_cast}) = {bp})"
     if isinstance(value, float):
         bp = _bind(compiler, value, Float(), **kw)

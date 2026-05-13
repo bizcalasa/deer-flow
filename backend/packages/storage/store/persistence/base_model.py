@@ -23,7 +23,7 @@ id_key = Annotated[
         autoincrement=True,
         sort_order=-999,
         comment="Primary key ID",
-    )
+    ),
 ]
 
 

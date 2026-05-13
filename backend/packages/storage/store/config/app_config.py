@@ -92,8 +92,7 @@ class AppConfig(BaseModel):
         elif os.getenv("DEER_FLOW_CONFIG_PATH"):
             path = Path(os.getenv("DEER_FLOW_CONFIG_PATH"))
             if not Path.exists(path):
-                raise FileNotFoundError(
-                    f"Config file specified by environment variable `DEER_FLOW_CONFIG_PATH` not found at {path}")
+                raise FileNotFoundError(f"Config file specified by environment variable `DEER_FLOW_CONFIG_PATH` not found at {path}")
             return path
         else:
             for path in _default_config_candidates():
@@ -159,8 +158,7 @@ class AppConfig(BaseModel):
 
         if user_version < example_version:
             logger.warning(
-                "Your config.yaml (version %d) is outdated — the latest version is %d. Run `make config-upgrade` to "
-                "merge new fields into your config.",
+                "Your config.yaml (version %d) is outdated — the latest version is %d. Run `make config-upgrade` to merge new fields into your config.",
                 user_version,
                 example_version,
             )
@@ -182,14 +180,12 @@ class AppConfig(BaseModel):
         return config
 
 
-
 _app_config: AppConfig | None = None
 _app_config_path: Path | None = None
 _app_config_mtime: float | None = None
 _app_config_is_custom = False
 _current_app_config: ContextVar[AppConfig | None] = ContextVar("deerflow_current_app_config", default=None)
-_current_app_config_stack: ContextVar[tuple[AppConfig | None, ...]] = ContextVar("deerflow_current_app_config_stack",
-                                                                                 default=())
+_current_app_config_stack: ContextVar[tuple[AppConfig | None, ...]] = ContextVar("deerflow_current_app_config_stack", default=())
 
 
 def _get_config_mtime(config_path: Path) -> float | None:

@@ -158,13 +158,10 @@ class DbRunEventRepository(RunEventRepositoryProtocol):
         after_seq: int | None = None,
         user_id: str | None = None,
     ) -> list[RunEvent]:
-        stmt = (
-            select(RunEventModel)
-            .where(
-                RunEventModel.thread_id == thread_id,
-                RunEventModel.run_id == run_id,
-                RunEventModel.category == "message",
-            )
+        stmt = select(RunEventModel).where(
+            RunEventModel.thread_id == thread_id,
+            RunEventModel.run_id == run_id,
+            RunEventModel.category == "message",
         )
         if user_id is not None:
             stmt = stmt.where(RunEventModel.user_id == user_id)
@@ -182,11 +179,7 @@ class DbRunEventRepository(RunEventRepositoryProtocol):
         return list(reversed([_to_run_event(row) for row in result.scalars().all()]))
 
     async def count_messages(self, thread_id: str, *, user_id: str | None = None) -> int:
-        stmt = (
-            select(func.count())
-            .select_from(RunEventModel)
-            .where(RunEventModel.thread_id == thread_id, RunEventModel.category == "message")
-        )
+        stmt = select(func.count()).select_from(RunEventModel).where(RunEventModel.thread_id == thread_id, RunEventModel.category == "message")
         if user_id is not None:
             stmt = stmt.where(RunEventModel.user_id == user_id)
         count = await self._session.scalar(stmt)

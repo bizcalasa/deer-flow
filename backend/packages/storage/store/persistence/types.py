@@ -15,6 +15,7 @@ class AppPersistence:
     """
     Unified runtime persistence bundle.
     """
+
     checkpointer: Checkpointer
     engine: AsyncEngine
     session_factory: async_sessionmaker[AsyncSession]
