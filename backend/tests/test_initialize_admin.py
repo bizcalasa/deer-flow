@@ -207,7 +207,6 @@ async def test_setup_status_single_flight_per_ip(monkeypatch):
     from app.gateway.routers.auth import (
         _SETUP_STATUS_CACHE,
         _SETUP_STATUS_INFLIGHT,
-        get_local_provider,
         setup_status,
     )
 
@@ -221,7 +220,7 @@ async def test_setup_status_single_flight_per_ip(monkeypatch):
             return 0
 
     provider = _Provider()
-    monkeypatch.setattr(get_local_provider, "__call__", lambda: provider)
+    monkeypatch.setattr("app.gateway.routers.auth.get_local_provider", lambda: provider)
     _SETUP_STATUS_CACHE.clear()
     _SETUP_STATUS_INFLIGHT.clear()
 
